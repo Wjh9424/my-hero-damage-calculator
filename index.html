@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的勇者 伤害计算器</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="page">
+        <header class="page-header">
+            <div>
+                <p class="eyebrow">TEAM DAMAGE CALCULATOR</p>
+                <h1>队伍伤害计算器</h1>
+                <p class="subtle">主C与最多3名辅助，辅助增益按对应乘区加到主C。</p>
+            </div>
+            <div class="header-actions">
+                <select id="configSelect" aria-label="选择已保存配置">
+                    <option value="">-- 选择配置 --</option>
+                </select>
+                <button class="secondary-btn" type="button" id="loadConfig">加载</button>
+                <button class="secondary-btn" type="button" id="saveConfig">保存</button>
+                <button class="danger-btn" type="button" id="deleteConfig">删除</button>
+                <button class="accent-btn" type="button" id="compareConfig">对比</button>
+            </div>
+        </header>
+
+        <div id="compareResult" class="compare-result" role="status"></div>
+
+        <section class="team-strip" aria-label="队伍成员">
+            <button class="member-card carry active" type="button" data-role="mainC">
+                <div class="card-top"><span class="member-name">主C</span><span class="role-tag">主输出</span></div>
+                <p class="card-summary" id="mainCardSummary">单人伤害 0.1500<br>基础面板与最终输出</p>
+            </button>
+            <button class="member-card support" type="button" data-role="support1">
+                <div class="card-top"><span class="member-name">辅助1</span><span class="status-tag off">未启用</span></div>
+                <p class="card-summary" id="support1Summary">暂无增益<br>点击编辑并启用</p>
+            </button>
+            <button class="member-card support" type="button" data-role="support2">
+                <div class="card-top"><span class="member-name">辅助2</span><span class="status-tag off">未启用</span></div>
+                <p class="card-summary" id="support2Summary">暂无增益<br>点击编辑并启用</p>
+            </button>
+            <button class="member-card support" type="button" data-role="support3">
+                <div class="card-top"><span class="member-name">辅助3</span><span class="status-tag off">未启用</span></div>
+                <p class="card-summary" id="support3Summary">暂无增益<br>点击编辑并启用</p>
+            </button>
+        </section>
+
+        <div class="workspace">
+            <section class="panel" aria-label="角色属性编辑">
+                <div class="panel-heading">
+                    <div>
+                        <h2 id="editingTitle">正在编辑：主C</h2>
+                        <p id="editingHint">主C自身面板，数值会直接参与伤害计算。</p>
+                    </div>
+                    <div class="panel-actions">
+                        <label class="name-control" id="nameControl" hidden>名称<input id="roleName" type="text" maxlength="20"></label>
+                        <label class="switch" id="enabledControl" hidden><input id="enabledInput" type="checkbox"> 计入队伍</label>
+                        <button class="ghost-btn" type="button" id="resetCurrent">重置当前面板</button>
+                    </div>
+                </div>
+                <div id="fieldGroups" class="field-body"></div>
+            </section>
+
+            <aside class="results" aria-label="队伍结果">
+                <h2>队伍计算结果</h2>
+                <div class="result-hero"><small>辅助增益后的最终伤害</small><strong id="teamDamage">0.1500</strong><span id="teamChange" class="result-change">较主C单人 +0.00%</span></div>
+                <div class="result-list">
+                    <div class="result-row"><span>主C单人伤害</span><strong id="mainDamage">0.1500</strong></div>
+                    <div class="result-row"><span>启用辅助</span><strong id="enabledCount">0 / 3</strong></div>
+                    <div class="result-row"><span>辅助增益总项</span><strong id="buffCount">0</strong></div>
+                </div>
+                <h3 class="details-title">有效乘区</h3>
+                <div id="multiplierDetails" class="multiplier-grid"></div>
+                <div class="result-note">辅助面板使用同一套属性字段；启用后，各字段增益会加到主C对应字段，未启用的辅助不参与计算。</div>
+            </aside>
+        </div>
+
+        <footer class="calculator-notes">
+            <p>百分比字段按小数输入，例如10%填写0.1。辅助的基础属性和伤害属性均按对应字段相加后计算。</p>
+        </footer>
+        <footer class="app-attribution">
+            <p><strong>维护：</strong>山海-蜂蜜柚子茶</p>
+            <p>特别鸣谢：艾琉诺拉、其名为字等雷亚卢卡利亚魔法学院群友的支持</p>
+            <p>原始计算逻辑参考：<a href="https://github.com/bin2sssss/Bin2" target="_blank" rel="noopener noreferrer">bin2sssss/Bin2</a></p>
+        </footer>
+    </main>
+    <script src="calc.js"></script>
+</body>
+</html>
