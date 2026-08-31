@@ -9,7 +9,8 @@ const FIELD_GROUPS = [
         label: '攻击属性',
         fields: [
             ['baseAttack', '基础攻强', 0], ['pctAttack', '攻强增幅', 0],
-            ['fixAttack', '固定攻强', 0], ['baseSG', '基础属攻', 0], ['pctSG', '属攻增幅', 0], ['tempSG', '临时属攻', 0]
+            ['fixAttack', '固定攻强', 0], ['baseSG', '基础属攻', 0], ['pctSG', '属攻增幅', 0], ['tempSG', '临时属攻', 0],
+            ['dongliSG', '东篱属攻', 350, 'main'], ['otherElementsSG', '其余两系属攻', 0, 'main'], ['source', '源泉', 0.3, 'main']
         ]
     },
     {
@@ -38,13 +39,14 @@ const FIELD_GROUPS = [
     }
 ];
 
-const FIELD_DEFINITIONS = FIELD_GROUPS.flatMap(group => group.fields.map(([id, label, defaultValue]) => ({
-    id, label, defaultValue
+const FIELD_DEFINITIONS = FIELD_GROUPS.flatMap(group => group.fields.map(([id, label, defaultValue, scope = 'all']) => ({
+    id, label, defaultValue, scope
 })));
 const FIELD_IDS = FIELD_DEFINITIONS.map(field => field.id);
-const PERCENT_FIELDS = new Set(['pctAttack', 'pctSG', 'pctCritnum', 'slsh', 'jnsh', 'yssh', 'shjc', 'ybys', 'cwys', 'ysys', 'sxyz', 'kzzf', 'shzf', 'extraDamage']);
+const SUPPORT_FIELD_IDS = FIELD_DEFINITIONS.filter(field => field.scope !== 'main').map(field => field.id);
+const PERCENT_FIELDS = new Set(['pctAttack', 'pctSG', 'pctCritnum', 'source', 'slsh', 'jnsh', 'yssh', 'shjc', 'ybys', 'cwys', 'ysys', 'sxyz', 'kzzf', 'shzf', 'extraDamage']);
 const DEFAULT_MAIN_INPUTS = Object.fromEntries(FIELD_DEFINITIONS.map(field => [field.id, field.defaultValue]));
-const DEFAULT_SUPPORT_INPUTS = Object.fromEntries(FIELD_DEFINITIONS.map(field => [field.id, 0]));
+const DEFAULT_SUPPORT_INPUTS = Object.fromEntries(SUPPORT_FIELD_IDS.map(id => [id, 0]));
 
 let teamConfig = createDefaultTeam();
 let savedConfigs = [];
@@ -60,8 +62,8 @@ function normalizeValue(value, fallback = 0) {
     return Number.isFinite(number) ? Math.max(0, number) : fallback;
 }
 
-function normalizeValues(values, defaults) {
-    return Object.fromEntries(FIELD_IDS.map(id => [id, normalizeValue(values?.[id], defaults[id])]));
+function normalizeValues(values, defaults, fieldIds = FIELD_IDS) {
+    return Object.fromEntries(fieldIds.map(id => [id, normalizeValue(values?.[id], defaults[id])]));
 }
 
 function createDefaultSupport(index) {
@@ -96,7 +98,7 @@ function normalizeTeamConfig(raw) {
         return {
             enabled: source.enabled === true,
             name: String(source.name || `辅助${index}`).slice(0, 20),
-            values: normalizeValues(source.values, DEFAULT_SUPPORT_INPUTS)
+            values: normalizeValues(source.values, DEFAULT_SUPPORT_INPUTS, SUPPORT_FIELD_IDS)
         };
     });
 
@@ -141,8 +143,8 @@ function renderFieldGroups() {
                 <span>${group.label}</span><span>展开 / 收起</span>
             </button>
             <div class="fields" id="fields-${group.id}" ${groupIndex === 0 ? '' : 'hidden'}>
-                ${group.fields.map(([id, label]) => `
-                    <label class="field" for="input-${id}">
+                ${group.fields.map(([id, label, defaultValue, scope = 'all']) => `
+                    <label class="field ${scope === 'main' ? 'main-only-field' : ''}" data-field-scope="${scope}" for="input-${id}">
                         <span>${label}</span>
                         <input id="input-${id}" data-field-id="${id}" type="number" min="0" step="any">
                     </label>
@@ -176,7 +178,10 @@ function renderActiveRole() {
     if (support) document.getElementById('enabledInput').checked = support.enabled;
 
     document.querySelectorAll('[data-field-id]').forEach(input => {
-        input.value = values[input.dataset.fieldId];
+        input.value = values[input.dataset.fieldId] ?? '';
+    });
+    document.querySelectorAll('.main-only-field').forEach(field => {
+        field.hidden = !isMain;
     });
     document.querySelectorAll('.member-card').forEach(card => {
         card.classList.toggle('active', card.dataset.role === activeRole);
@@ -230,11 +235,16 @@ function hjctValue(hjct, gwhj) {
 }
 
 function calculateDamage(inputs) {
-    const values = normalizeValues(inputs, DEFAULT_SUPPORT_INPUTS);
+    const values = normalizeValues(inputs, DEFAULT_MAIN_INPUTS);
     const multipliers = {
         attack: ((values.baseAttack * (1 + values.pctAttack) + values.fixAttack) / 700 + 1),
         crit: Math.max(0, Math.min(calculateValue(values.critValue) - values.critresist, 1)) * (values.critnum * (1 + values.pctCritnum) + values.tempCritnum + 150) / 100,
-        attributeAttack: (values.baseSG * (1 + values.pctSG) + values.tempSG) / 700 + 1,
+        attributeAttack: (
+            values.baseSG * (1 + values.pctSG)
+            + values.tempSG
+            + values.dongliSG * (2 * values.source + 1)
+            + values.otherElementsSG * values.pctSG * values.source
+        ) / 700 + 1,
         elementPenetration: ysctValue(values.ysct, values.yskx),
         armorPenetration: hjctValue(values.hjct, values.gwhj),
         bossDamage: values.slsh + 1,
@@ -253,7 +263,7 @@ function getEffectiveInputs() {
     const effective = clone(teamConfig.mainC);
     teamConfig.supports.forEach(support => {
         if (!support.enabled) return;
-        FIELD_IDS.forEach(id => {
+        SUPPORT_FIELD_IDS.forEach(id => {
             effective[id] += support.values[id];
         });
     });
@@ -281,7 +291,7 @@ function calculateAndRender() {
     const enabledCount = teamConfig.supports.filter(support => support.enabled).length;
     const buffCount = teamConfig.supports
         .filter(support => support.enabled)
-        .reduce((count, support) => count + FIELD_IDS.filter(id => support.values[id] !== 0).length, 0);
+        .reduce((count, support) => count + SUPPORT_FIELD_IDS.filter(id => support.values[id] !== 0).length, 0);
     const change = mainResult.finalDamage === 0 ? 0 : (teamResult.finalDamage - mainResult.finalDamage) / mainResult.finalDamage * 100;
     document.getElementById('mainDamage').textContent = formatValue(mainResult.finalDamage);
     document.getElementById('teamDamage').textContent = formatValue(teamResult.finalDamage);
@@ -362,7 +372,7 @@ function getEffectiveInputsFromTeam(config) {
     const effective = clone(normalized.mainC);
     normalized.supports.forEach(support => {
         if (!support.enabled) return;
-        FIELD_IDS.forEach(id => { effective[id] += support.values[id]; });
+        SUPPORT_FIELD_IDS.forEach(id => { effective[id] += support.values[id]; });
     });
     return normalizeValues(effective, DEFAULT_MAIN_INPUTS);
 }
