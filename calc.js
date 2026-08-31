@@ -9,14 +9,14 @@ const FIELD_GROUPS = [
         label: '攻击属性',
         fields: [
             ['baseAttack', '基础攻强', 0], ['pctAttack', '百分比攻强', 0],
-            ['fixAttack', '固定攻强', 0], ['baseSG', '基础属攻', 0], ['tempSG', '临时属攻', 0]
+            ['fixAttack', '固定攻强', 0], ['baseSG', '基础属攻', 0], ['pctSG', '百分比属攻', 0], ['tempSG', '临时属攻', 0]
         ]
     },
     {
         id: 'crit',
         label: '暴击与穿透',
         fields: [
-            ['critValue', '暴击值', 750], ['critresist', '暴击抗性', 0], ['critnum', '爆伤值', 0],
+            ['critValue', '暴击值', 750], ['critresist', '暴击抗性', 0], ['critnum', '爆伤值', 0], ['pctCritnum', '百分比爆伤', 0],
             ['hjct', '护甲穿透', 0], ['gwhj', '怪物护甲', 0], ['ysct', '元素穿透', 0], ['yskx', '元素抗性', 0]
         ]
     },
@@ -42,7 +42,7 @@ const FIELD_DEFINITIONS = FIELD_GROUPS.flatMap(group => group.fields.map(([id, l
     id, label, defaultValue
 })));
 const FIELD_IDS = FIELD_DEFINITIONS.map(field => field.id);
-const PERCENT_FIELDS = new Set(['pctAttack', 'slsh', 'jnsh', 'yssh', 'shjc', 'ybys', 'cwys', 'ysys', 'sxyz', 'kzzf', 'shzf', 'extraDamage']);
+const PERCENT_FIELDS = new Set(['pctAttack', 'pctSG', 'pctCritnum', 'slsh', 'jnsh', 'yssh', 'shjc', 'ybys', 'cwys', 'ysys', 'sxyz', 'kzzf', 'shzf', 'extraDamage']);
 const DEFAULT_MAIN_INPUTS = Object.fromEntries(FIELD_DEFINITIONS.map(field => [field.id, field.defaultValue]));
 const DEFAULT_SUPPORT_INPUTS = Object.fromEntries(FIELD_DEFINITIONS.map(field => [field.id, 0]));
 
@@ -233,8 +233,8 @@ function calculateDamage(inputs) {
     const values = normalizeValues(inputs, DEFAULT_SUPPORT_INPUTS);
     const multipliers = {
         attack: ((values.baseAttack * (1 + values.pctAttack) + values.fixAttack) / 700 + 1),
-        crit: Math.max(0, Math.min(calculateValue(values.critValue) - values.critresist, 1)) * (values.critnum + 150) / 1000,
-        attributeAttack: (values.baseSG + values.tempSG) / 700 + 1,
+        crit: Math.max(0, Math.min(calculateValue(values.critValue) - values.critresist, 1)) * (values.critnum * (1 + values.pctCritnum) + 150) / 1000,
+        attributeAttack: (values.baseSG * (1 + values.pctSG) + values.tempSG) / 700 + 1,
         elementPenetration: ysctValue(values.ysct, values.yskx),
         armorPenetration: hjctValue(values.hjct, values.gwhj),
         bossDamage: values.slsh + 1,
