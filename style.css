@@ -94,6 +94,7 @@ h3 { font-size: 15px; }
 .result-note { margin-top: 14px; padding: 11px 12px; border-radius: 6px; background: var(--warning-soft); color: var(--warning); font-size: 13px; }
 .calculator-notes { margin-top: 18px; padding: 12px 14px; border-left: 3px solid var(--primary); background: #eef2ff; color: #445070; font-size: 13px; }
 .app-attribution { display: grid; gap: 4px; margin-top: 12px; padding: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; text-align: center; }
+.community-highlight { justify-self: center; margin-bottom: 3px; padding: 5px 12px; border: 1px solid #c9d5ff; border-radius: 6px; background: var(--primary-soft); color: #253b91; font-weight: 700; }
 .app-attribution strong { color: var(--ink); }
 .app-attribution a { color: var(--primary); text-decoration: none; }
 .app-attribution a:hover { text-decoration: underline; }
