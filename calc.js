@@ -8,16 +8,15 @@ const FIELD_GROUPS = [
         id: 'attack',
         label: '攻击属性',
         fields: [
-            ['baseAttack', '基础攻强', 0], ['pctAttack', '攻强增幅', 0],
-            ['fixAttack', '固定攻强', 0], ['baseSG', '基础属攻', 0], ['pctSG', '属攻增幅', 0], ['tempSG', '临时属攻', 0],
-            ['dongliSG', '东篱属攻', 350, 'main'], ['otherElementsSG', '其余两系属攻', 0, 'main'], ['source', '源泉', 0.3, 'main']
+            ['baseAttack', '基础攻强', 0, 'main'], ['pctAttack', '攻强增幅', 0],
+            ['fixAttack', '固定攻强', 0], ['baseSG', '基础属攻', 0, 'main'], ['pctSG', '属攻增幅', 0, 'support'], ['tempSG', '临时属攻', 0]
         ]
     },
     {
         id: 'crit',
         label: '暴击与穿透',
         fields: [
-            ['critValue', '暴击值', 750], ['critresist', '暴击抗性', 0], ['critnum', '爆伤值', 0], ['pctCritnum', '爆伤增幅', 0], ['tempCritnum', '临时爆伤', 0],
+            ['critValue', '暴击值', 750], ['critresist', '暴击抗性', 0], ['critnum', '爆伤值', 0, 'main'], ['pctCritnum', '爆伤增幅', 0, 'support'], ['tempCritnum', '临时爆伤', 0],
             ['hjct', '护甲穿透', 0], ['gwhj', '怪物护甲', 0], ['ysct', '元素穿透', 0], ['yskx', '元素抗性', 0]
         ]
     },
@@ -43,10 +42,12 @@ const FIELD_DEFINITIONS = FIELD_GROUPS.flatMap(group => group.fields.map(([id, l
     id, label, defaultValue, scope
 })));
 const FIELD_IDS = FIELD_DEFINITIONS.map(field => field.id);
+const MAIN_FIELD_IDS = FIELD_DEFINITIONS.filter(field => field.scope !== 'support').map(field => field.id);
 const SUPPORT_FIELD_IDS = FIELD_DEFINITIONS.filter(field => field.scope !== 'main').map(field => field.id);
-const PERCENT_FIELDS = new Set(['pctAttack', 'pctSG', 'pctCritnum', 'source', 'slsh', 'jnsh', 'yssh', 'shjc', 'ybys', 'cwys', 'ysys', 'sxyz', 'kzzf', 'shzf', 'extraDamage']);
-const DEFAULT_MAIN_INPUTS = Object.fromEntries(FIELD_DEFINITIONS.map(field => [field.id, field.defaultValue]));
+const PERCENT_FIELDS = new Set(['pctAttack', 'pctSG', 'pctCritnum', 'slsh', 'jnsh', 'yssh', 'shjc', 'ybys', 'cwys', 'ysys', 'sxyz', 'kzzf', 'shzf', 'extraDamage']);
+const DEFAULT_MAIN_INPUTS = Object.fromEntries(FIELD_DEFINITIONS.filter(field => field.scope !== 'support').map(field => [field.id, field.defaultValue]));
 const DEFAULT_SUPPORT_INPUTS = Object.fromEntries(SUPPORT_FIELD_IDS.map(id => [id, 0]));
+const DEFAULT_CALC_INPUTS = Object.fromEntries(FIELD_DEFINITIONS.map(field => [field.id, field.defaultValue]));
 
 let teamConfig = createDefaultTeam();
 let savedConfigs = [];
@@ -76,7 +77,7 @@ function createDefaultSupport(index) {
 
 function createDefaultTeam() {
     return {
-        version: 2,
+        version: 3,
         mainCName: '主C',
         mainC: clone(DEFAULT_MAIN_INPUTS),
         supports: [1, 2, 3].map(createDefaultSupport)
@@ -84,17 +85,11 @@ function createDefaultTeam() {
 }
 
 function normalizeTeamConfig(raw) {
-    if (!raw || raw.version !== 2) {
-        return {
-            version: 2,
-            mainCName: '主C',
-            mainC: normalizeValues(raw, DEFAULT_MAIN_INPUTS),
-            supports: [1, 2, 3].map(createDefaultSupport)
-        };
-    }
+    const legacyMain = raw?.mainC || raw || {};
+    const legacySupports = Array.isArray(raw?.supports) ? raw.supports : [];
 
     const supports = [1, 2, 3].map((index) => {
-        const source = raw.supports?.[index - 1] || {};
+        const source = legacySupports[index - 1] || {};
         return {
             enabled: source.enabled === true,
             name: String(source.name || `辅助${index}`).slice(0, 20),
@@ -103,9 +98,9 @@ function normalizeTeamConfig(raw) {
     });
 
     return {
-        version: 2,
-        mainCName: String(raw.mainCName || '主C').slice(0, 20),
-        mainC: normalizeValues(raw.mainC, DEFAULT_MAIN_INPUTS),
+        version: 3,
+        mainCName: String(raw?.mainCName || '主C').slice(0, 20),
+        mainC: normalizeValues(legacyMain, DEFAULT_MAIN_INPUTS, MAIN_FIELD_IDS),
         supports
     };
 }
@@ -144,7 +139,7 @@ function renderFieldGroups() {
             </button>
             <div class="fields" id="fields-${group.id}" ${groupIndex === 0 ? '' : 'hidden'}>
                 ${group.fields.map(([id, label, defaultValue, scope = 'all']) => `
-                    <label class="field ${scope === 'main' ? 'main-only-field' : ''}" data-field-scope="${scope}" for="input-${id}">
+                    <label class="field ${scope === 'main' ? 'main-only-field' : ''} ${scope === 'support' ? 'support-only-field' : ''}" data-field-scope="${scope}" for="input-${id}">
                         <span>${label}</span>
                         <input id="input-${id}" data-field-id="${id}" type="number" min="0" step="any">
                     </label>
@@ -182,6 +177,9 @@ function renderActiveRole() {
     });
     document.querySelectorAll('.main-only-field').forEach(field => {
         field.hidden = !isMain;
+    });
+    document.querySelectorAll('.support-only-field').forEach(field => {
+        field.hidden = isMain;
     });
     document.querySelectorAll('.member-card').forEach(card => {
         card.classList.toggle('active', card.dataset.role === activeRole);
@@ -235,15 +233,13 @@ function hjctValue(hjct, gwhj) {
 }
 
 function calculateDamage(inputs) {
-    const values = normalizeValues(inputs, DEFAULT_MAIN_INPUTS);
+    const values = normalizeValues(inputs, DEFAULT_CALC_INPUTS);
     const multipliers = {
         attack: ((values.baseAttack * (1 + values.pctAttack) + values.fixAttack) / 700 + 1),
         crit: Math.max(0, Math.min(calculateValue(values.critValue) - values.critresist, 1)) * (values.critnum * (1 + values.pctCritnum) + values.tempCritnum + 150) / 100,
         attributeAttack: (
             values.baseSG * (1 + values.pctSG)
             + values.tempSG
-            + values.dongliSG * (2 * values.source + 1)
-            + values.otherElementsSG * values.pctSG * values.source
         ) / 700 + 1,
         elementPenetration: ysctValue(values.ysct, values.yskx),
         armorPenetration: hjctValue(values.hjct, values.gwhj),
@@ -260,14 +256,14 @@ function calculateDamage(inputs) {
 }
 
 function getEffectiveInputs() {
-    const effective = clone(teamConfig.mainC);
+    const effective = { ...clone(DEFAULT_CALC_INPUTS), ...teamConfig.mainC };
     teamConfig.supports.forEach(support => {
         if (!support.enabled) return;
         SUPPORT_FIELD_IDS.forEach(id => {
             effective[id] += support.values[id];
         });
     });
-    return normalizeValues(effective, DEFAULT_MAIN_INPUTS);
+    return normalizeValues(effective, DEFAULT_CALC_INPUTS);
 }
 
 function renderMultipliers(multipliers) {
@@ -369,12 +365,12 @@ function compareConfigs() {
 
 function getEffectiveInputsFromTeam(config) {
     const normalized = normalizeTeamConfig(config);
-    const effective = clone(normalized.mainC);
+    const effective = { ...clone(DEFAULT_CALC_INPUTS), ...normalized.mainC };
     normalized.supports.forEach(support => {
         if (!support.enabled) return;
         SUPPORT_FIELD_IDS.forEach(id => { effective[id] += support.values[id]; });
     });
-    return normalizeValues(effective, DEFAULT_MAIN_INPUTS);
+    return normalizeValues(effective, DEFAULT_CALC_INPUTS);
 }
 
 function bindEvents() {
