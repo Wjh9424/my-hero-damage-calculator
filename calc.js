@@ -8,15 +8,15 @@ const FIELD_GROUPS = [
         id: 'attack',
         label: '攻击属性',
         fields: [
-            ['baseAttack', '基础攻强', 0], ['pctAttack', '百分比攻强', 0],
-            ['fixAttack', '固定攻强', 0], ['baseSG', '基础属攻', 0], ['pctSG', '百分比属攻', 0], ['tempSG', '临时属攻', 0]
+            ['baseAttack', '基础攻强', 0], ['pctAttack', '攻强增幅', 0],
+            ['fixAttack', '固定攻强', 0], ['baseSG', '基础属攻', 0], ['pctSG', '属攻增幅', 0], ['tempSG', '临时属攻', 0]
         ]
     },
     {
         id: 'crit',
         label: '暴击与穿透',
         fields: [
-            ['critValue', '暴击值', 750], ['critresist', '暴击抗性', 0], ['critnum', '爆伤值', 0], ['pctCritnum', '百分比爆伤', 0],
+            ['critValue', '暴击值', 750], ['critresist', '暴击抗性', 0], ['critnum', '爆伤值', 0], ['pctCritnum', '爆伤增幅', 0],
             ['hjct', '护甲穿透', 0], ['gwhj', '怪物护甲', 0], ['ysct', '元素穿透', 0], ['yskx', '元素抗性', 0]
         ]
     },
