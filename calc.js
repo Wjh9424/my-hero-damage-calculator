@@ -16,7 +16,7 @@ const FIELD_GROUPS = [
         id: 'crit',
         label: '暴击与穿透',
         fields: [
-            ['critValue', '暴击值', 750], ['critresist', '暴击抗性', 0], ['critnum', '爆伤值', 0], ['pctCritnum', '爆伤增幅', 0],
+            ['critValue', '暴击值', 750], ['critresist', '暴击抗性', 0], ['critnum', '爆伤值', 0], ['pctCritnum', '爆伤增幅', 0], ['tempCritnum', '临时爆伤', 0],
             ['hjct', '护甲穿透', 0], ['gwhj', '怪物护甲', 0], ['ysct', '元素穿透', 0], ['yskx', '元素抗性', 0]
         ]
     },
@@ -233,7 +233,7 @@ function calculateDamage(inputs) {
     const values = normalizeValues(inputs, DEFAULT_SUPPORT_INPUTS);
     const multipliers = {
         attack: ((values.baseAttack * (1 + values.pctAttack) + values.fixAttack) / 700 + 1),
-        crit: Math.max(0, Math.min(calculateValue(values.critValue) - values.critresist, 1)) * (values.critnum * (1 + values.pctCritnum) + 150) / 100,
+        crit: Math.max(0, Math.min(calculateValue(values.critValue) - values.critresist, 1)) * (values.critnum * (1 + values.pctCritnum) + values.tempCritnum + 150) / 100,
         attributeAttack: (values.baseSG * (1 + values.pctSG) + values.tempSG) / 700 + 1,
         elementPenetration: ysctValue(values.ysct, values.yskx),
         armorPenetration: hjctValue(values.hjct, values.gwhj),
