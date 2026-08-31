@@ -222,7 +222,7 @@ function calculateValue(critValue) {
 
 function ysctValue(ysct, yskx) {
     if (ysct <= yskx) return 1505 / (yskx - ysct + 1505);
-    return (ysct - yskx) / (ysct - yskx + 3992) + 1;
+    return (ysct - yskx) / (ysct - yskx + 4000) + 1;
 }
 
 function hjctValue(hjct, gwhj) {
